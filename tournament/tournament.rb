@@ -5,68 +5,86 @@ Write your code for the 'Tournament' exercise in this file. Make the tests in
 To get started with TDD, see the `README.md` file in your
 `ruby/tournament` directory.
 =end
-class Tournament
-  
-  def self.tally(input)
-    teams = get_teams_score input
 
-    tally = sprintf "%-31s| %2s | %2s | %2s | %2s | %2s\n" % ["Team", "MP", "W", "D", "L", "P"]
-    teams.each do |id, team|
-      team[5] = team[3] + team[2] * 3
-      tally += sprintf "%-31s| %2s | %2s | %2s | %2s | %2s\n" % team
+class Team
+  attr_accessor :id, :wins, :draws, :loses, :name, :matches_played
+  
+  @@team_id = 0
+
+  def initialize name
+    @id = @@team_id
+    @name = name
+    @matches_played = 0
+    @wins = 0
+    @draws = 0
+    @loses = 0
+    @@team_id += 1
+  end
+
+  def points
+    3 * @wins + @draws
+  end
+
+  def <=> other
+    other.points <=> self.points
+  end
+end
+
+class Tournament
+
+  def self.tally input
+    out = sprintf "%-31s| %2s | %2s | %2s | %2s | %2s\n" % ["Team", "MP", "W", "D", "L", "P"]
+    
+    self.parse_matches(input).each do |team|
+      out  += sprintf "%-31s| %2s | %2s | %2s | %2s | %2s\n" % [ 
+        team.name,
+        team.matches_played,
+        team.wins,
+        team.draws,
+        team.loses,
+        team.points
+      ]
     end
 
-    tally
+    out
   end
 
   private
-  def self.get_teams_score(input)
-    teams = {}
-    lines = input.split "\n"
-    lines.each do |line|
-      match = parse_match line.strip
-      teams = update_team_score teams, match
-    end
+  def self.parse_matches input
+    teams = Hash.new
+    
+    matches = input.split "\n"
+    matches.each do |match|
+     match_contents = match.split ';'
+      team_1 = match_contents[0]
+      team_2 = match_contents[1]
+      result = match_contents[2]
 
-    teams
-  end
+      unless teams.key? team_1
+        teams[team_1] = Team.new team_1
+      end
+      
+      unless teams.key? team_2
+        teams[team_2] = Team.new team_2
+      end
+     
+        teams[team_1].matches_played += 1
+        teams[team_2].matches_played += 1
 
-  def self.parse_match(match)
-    match_contents = match.split ';'
+      if result == 'draw'
+          teams[team_1].draws += 1
+          teams[team_2].draws += 1
+        elsif result == 'win'
+          teams[team_1].wins += 1
+          teams[team_2].loses += 1
+        else
+          teams[team_1].loses += 1
+          teams[team_2].wins += 1
+      end
 
-    {
-      "team_1" => match_contents[0],
-      "team_2" => match_contents[1],
-      "result" => match_contents[2],
-    }
-  end
-
-  def self.update_team_score(teams, match)
-    team1 = match["team_1"]
-    team2 = match["team_2"]
-
-    if teams[team1].nil?
-      teams[team1] = [team1, 0, 0, 0, 0]
     end
     
-    if teams[team2].nil?
-      teams[team2] = [team2, 0, 0, 0, 0]
-    end
-    
-    teams[team1][1] += 1
-    teams[team2][1] += 1
-    if match["result"] == "draw"
-      teams[team1][3] += 1
-      teams[team2][3] += 1
-    elsif match["result"] == "win"
-      teams[team1][2] += 1
-      teams[team2][4] += 1
-    else
-      teams[team1][4] += 1
-      teams[team2][2] == 1
-    end
-
-    teams
+    teams.values.sort_by(&:name).sort
   end
 
-end 
+end
